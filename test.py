@@ -5,6 +5,7 @@ from Unit import Unit
 
 logging.basicConfig()
 
+
 inputs = [Unit(1., 0.), Unit(2., 0.)]
 
 xy = Unit(0., 0.)
