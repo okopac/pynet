@@ -35,8 +35,8 @@ class Circuit(object):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     c = Circuit()
-    abc = [Unit(i+8., 0.) for i in range(3)]
-    xy = [Unit(i+4., 0.) for i in range(2)]
+    abc = [Unit(i, 0.) for i in range(3)]
+    xy = [Unit(i, 0.) for i in range(2)]
     out = c.forward(*abc, *xy)
     c.backward(1.)
     for unit in abc:

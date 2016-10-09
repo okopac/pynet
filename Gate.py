@@ -16,8 +16,10 @@ class MultiplyGate(object):
     def backward(self):
         # Use the chain rule to pass back the gradient to the inputs
         logging.debug("MultiplyGate passing back gradient %f" % self.uout.grad)
-        self.u1.grad = self.uout.grad * self.u1.value
-        self.u2.grad = self.uout.grad * self.u2.value
+        logging.debug("Values of u1, u2: %f, %f" % (self.u1.value, self.u2.value))
+        self.u1.grad = self.uout.grad * self.u2.value
+        self.u2.grad = self.uout.grad * self.u1.value
+        logging.debug("MultiplyGate upstream grad set to %f, %f" % (self.u1.grad, self.u2.grad))
 
 class AddGate(object):
     """docstring for AddGate."""

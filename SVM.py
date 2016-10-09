@@ -5,61 +5,72 @@ from Circuit import Circuit
 
 class SVM(object):
     """docstring for SVM."""
-    def __init__(self, step_size = 0.1):
+    def __init__(self, step_size = 0.01):
         super(SVM, self).__init__()
 
-        self.abc = [Unit(i, 0.) for i in range(3)]
+        self.a = Unit(1., 0.)
+        self.b = Unit(-2., 0.)
+        self.c = Unit(-1., 0.)
+
         self.circuit = Circuit()
 
         self.step_size = step_size
 
     def forward(self, x, y):
-        self.output = self.circuit.forward(*self.abc, Unit(x, 0), Unit(y, 0))
+        self.output = self.circuit.forward(self.a, self.b, self.c, Unit(x, 0), Unit(y, 0))
         return self.output
 
     def backward(self, label):
-        pull = 0
+        pull = 0.
         # If the label is +1, the we should have a postitive return value.
         # If not, drive upwards
         if label == 1 and self.output.value < 1:
-            pull = 1
+            pull = 1.
         if label == -1 and self.output.value > -1:
-            pull = -1
+            pull = -1.
 
-        for u in self.abc:
-            u.grad = 0
+        self.a.grad = 0.
+        self.b.grad = 0.
+        self.c.grad = 0.
 
         self.circuit.backward(pull)
 
         # Regularisation, bring the parameters back towards zero
-        self.abc[0].grad += -self.abc[0].value
-        self.abc[1].grad += -self.abc[1].value
+        self.a.grad += -self.a.value
+        self.b.grad += -self.b.value
 
     def predict(self, x, y):
         result = self.forward(x, y)
         return 1 if result.value > 0 else -1
 
     def train(self, x, y, label):
-        self.forward(x, y)
+        res = self.forward(x, y)
         self.backward(label)
+        logging.debug("Result from training (%s, %s, %d): %s" % (x, y, label, res))
         self.update_parameters()
 
     def update_parameters(self):
-        for i in range(len(self.abc)):
-            self.abc[i].value += self.abc[i].grad * self.step_size
+        self.a.value += self.a.grad * self.step_size
+        self.b.value += self.b.grad * self.step_size
+        self.c.value += self.c.grad * self.step_size
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.WARN)
     svm = SVM()
+    print("f(x, y) = %fx + %fy + %f" % (svm.a.value, svm.b.value, svm.c.value))
+
     data = [
-        [1.2, 0.7], [-0.3, -0.5], [3.0, 0.1], [-0.1, -1.0], [-1.0, 1.1], [2.1, -3]
+        [1.2, 0.7], [-0.3, 0.5], [-3, -1], [0.1, 1.0], [3.0, 1.1], [2.1, -3]
     ]
     labels = [1, -1, 1, -1, -1, 1]
     def eval_model(data, labels, model):
-        return sum([model.predict(*d) == l for d, l in zip(data, labels)]) * 100.0 / len(labels)
+        return sum([model.predict(*d) == l for d, l in zip(data, labels)]) * 100. / len(labels)
 
-    for i in range(100):
+    for i in range(401):
         for d, l in zip(data, labels):
-            svm.train(*d, l)
-            print(svm.abc)
 
-    print(eval_model(data, labels, svm))
+            logging.info("f(x, y) = %fx + %fy + %f" % (svm.a.value, svm.b.value, svm.c.value))
+            svm.train(*d, l)
+            if i % 100 == 0:
+                print(eval_model(data, labels, svm), i)
+                print("  f(x, y) = %fx + %fy + %f" % (svm.a.value, svm.b.value, svm.c.value))
