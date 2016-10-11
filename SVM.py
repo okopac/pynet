@@ -53,24 +53,3 @@ class SVM(object):
         self.a.value += self.a.grad * self.step_size
         self.b.value += self.b.grad * self.step_size
         self.c.value += self.c.grad * self.step_size
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.WARN)
-    svm = SVM()
-    print("f(x, y) = %fx + %fy + %f" % (svm.a.value, svm.b.value, svm.c.value))
-
-    data = [
-        [1.2, 0.7], [-0.3, 0.5], [-3, -1], [0.1, 1.0], [3.0, 1.1], [2.1, -3]
-    ]
-    labels = [1, -1, 1, -1, -1, 1]
-    def eval_model(data, labels, model):
-        return sum([model.predict(*d) == l for d, l in zip(data, labels)]) * 100. / len(labels)
-
-    for i in range(401):
-        for d, l in zip(data, labels):
-
-            logging.info("f(x, y) = %fx + %fy + %f" % (svm.a.value, svm.b.value, svm.c.value))
-            svm.train(*d, l)
-            if i % 100 == 0:
-                print(eval_model(data, labels, svm), i)
-                print("  f(x, y) = %fx + %fy + %f" % (svm.a.value, svm.b.value, svm.c.value))
