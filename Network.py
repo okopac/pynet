@@ -65,8 +65,6 @@ class SVM(object):
         # Regularisation, bring the parameters back towards zero
         for unit in self.ucreator:
             unit.grad -= unit.value
-        #self.a.grad += -self.a.value
-        #self.b.grad += -self.b.value
 
         self.apply_gradient()
 
