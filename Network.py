@@ -8,7 +8,7 @@ class SVM(object):
 
     The function we are attempting to fit is f(x, y) = ax + by + c
 
-    To create this funtion we have:
+    To create this function we have:
       * 3 gates (ax, bx, ax + bx + c)
     """
     def __init__(self):
@@ -62,11 +62,13 @@ class SVM(object):
         self.agate.set_grad(pull)
         self.__backward__()
 
-        self.apply_gradient()
-
         # Regularisation, bring the parameters back towards zero
+        for unit in self.ucreator:
+            unit.grad -= unit.value
         #self.a.grad += -self.a.value
         #self.b.grad += -self.b.value
+
+        self.apply_gradient()
 
     def apply_gradient(self, step_size = 0.1):
         for unit in self.ucreator:
