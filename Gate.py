@@ -1,7 +1,16 @@
-from Unit import Unit, UnitCreator
+from Unit import UnitCreator
 
 class Gate(object):
-    """docstring for Gate."""
+    """
+    The gate is the main computational object in the neural net. This is the
+    base class, and any gate is required to implement forward and backward, the
+    process of propagating signal through the gate.
+
+    When gates are initialised they create a new output unit, this is where they
+    save thier output data. To add inputs, or parameters, the gate uses the
+    unitcreator object. This is so we can keep track of all units that have been
+    created in the network.
+    """
     def __init__(self, ucreator):
         super(Gate, self).__init__()
         self.ucreator = ucreator
@@ -25,7 +34,7 @@ class Gate(object):
 
     def backward(self):
         raise NotImplementedError
-        
+
     def set_input_value(self, iname, value):
         for u in self.inputs:
             if iname == u.name:

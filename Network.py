@@ -1,48 +1,50 @@
 from Unit import Unit, UnitCreator
 from Gate import MultiplyGate, AddGate
 
-class Network(object):
-    """docstring for Network."""
-    def __init__(self, unitcreator):
-        super(Network, self).__init__()
-        self.unitcreator = unitcreator
-
-    def apply_gradient(self, step_size = 0.1):
-        for unit in unitcreator:
-            unit.value += unit.grad * step_size
-
 class SVM(object):
-    """docstring for TestNetwork.
-    The function we are doing is f(x, y) = ax + by + c
+    """
+    This is a simple example of an SVM model being implemented using this neural
+    network framework.
+
+    The function we are attempting to fit is f(x, y) = ax + by + c
+
+    To create this funtion we have:
+      * 3 gates (ax, bx, ax + bx + c)
     """
     def __init__(self):
         super(SVM, self).__init__()
+        # Keep track of all the units in this model
         self.ucreator = UnitCreator()
-        self.gates = []
-        self.mgate1 = MultiplyGate(self.ucreator)
-        self.mgate1.bind_unit_input(self.ucreator.new_unit(0., 0., 'a'))
-        self.mgate1.bind_unit_input(self.ucreator.new_unit(0., 0., 'x'))
-        self.mgate2 = MultiplyGate(self.ucreator)
-        self.mgate2.bind_unit_input(self.ucreator.new_unit(0., 0., 'b'))
-        self.mgate2.bind_unit_input(self.ucreator.new_unit(0., 0., 'y'))
+
+        # ax
+        self.mgate_ax = MultiplyGate(self.ucreator)
+        self.mgate_ax.bind_unit_input(self.ucreator.new_unit(0., 0., 'a'))
+        self.mgate_ax.bind_unit_input(self.ucreator.new_unit(0., 0., 'x'))
+
+        # bx
+        self.mgate_by = MultiplyGate(self.ucreator)
+        self.mgate_by.bind_unit_input(self.ucreator.new_unit(0., 0., 'b'))
+        self.mgate_by.bind_unit_input(self.ucreator.new_unit(0., 0., 'y'))
+
+        # ax + bx + c
         self.agate = AddGate(self.ucreator)
         self.agate.bind_unit_input(self.ucreator.new_unit(0., 0., 'c'))
-        self.agate.bind_gate_input(self.mgate1)
-        self.agate.bind_gate_input(self.mgate2)
+        self.agate.bind_gate_input(self.mgate_ax)
+        self.agate.bind_gate_input(self.mgate_by)
 
     def forward(self):
-        self.mgate1.forward()
-        self.mgate2.forward()
+        self.mgate_ax.forward()
+        self.mgate_by.forward()
         self.agate.forward()
 
     def __backward__(self):
         self.agate.backward()
-        self.mgate2.backward()
-        self.mgate1.backward()
+        self.mgate_by.backward()
+        self.mgate_ax.backward()
 
     def predict(self, x, y):
-        self.mgate1.set_input_value('x', x)
-        self.mgate2.set_input_value('y', y)
+        self.mgate_ax.set_input_value('x', x)
+        self.mgate_by.set_input_value('y', y)
         self.forward()
         return self.agate.get_value()
 

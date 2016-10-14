@@ -1,5 +1,10 @@
 class Unit(object):
-    """docstring for Unit."""
+    """
+    The unit object is the only class in the NN that stores parameters of the
+    model. It has three components, value (used in forward propagation), grad
+    (used in backpropagation) and name (used to help keep track of where the
+    parameters are used).
+    """
     def __init__(self, value = None, grad = None, name=None):
         super(Unit, self).__init__()
         self.value = value
@@ -16,7 +21,10 @@ class Unit(object):
             return "Value: %s, Grad: %s" % (self.value, self.grad)
 
 class UnitCreator(object):
-    """docstring for UnitCreator."""
+    """
+    A class that is responsible for creating units. We do this to keep track of
+    all the units that are in our network.
+    """
     def __init__(self):
         super(UnitCreator, self).__init__()
         self.units = []
