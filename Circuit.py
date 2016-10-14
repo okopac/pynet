@@ -25,8 +25,9 @@ class Circuit(object):
 
         return self.ax_by_c
 
-    def backward(self, grad):
-        self.ax_by_c.grad = grad
+    def backward(self, grad=None):
+        if grad != None:
+            self.ax_by_c.grad = grad
         self.agate2.backward()
         self.agate1.backward()
         self.mgate2.backward()
