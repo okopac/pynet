@@ -23,7 +23,7 @@ class Unit(object):
 class UnitCreator(object):
     """
     A class that is responsible for creating units. We do this to keep track of
-    all the units that are in our network.
+    all the units that are in our networkself.
     """
     def __init__(self):
         super(UnitCreator, self).__init__()
