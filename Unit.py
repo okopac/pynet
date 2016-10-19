@@ -37,6 +37,10 @@ class UnitCreator(object):
         for u in self.units:
             print(u)
 
+    def zero_grad(self):
+        for u in self.units:
+            u.grad = 0.0
+
     def __iter__(self):
         for u in self.units:
             yield u

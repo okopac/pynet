@@ -1,4 +1,5 @@
 from Unit import UnitCreator
+from math import exp
 
 class Gate(object):
     """
@@ -75,7 +76,7 @@ class AddGate(Gate):
         for i in range(len(self.inputs)):
             self.inputs[i].grad = self.output_unit.grad
 
-class CombineGate(object):
+class CombineGate(Gate):
     """docstring for CombineGate."""
     def __init__(self, *args):
         super(CombineGate, self).__init__(*args)
@@ -85,23 +86,24 @@ class CombineGate(object):
         # Everytime something wants to add an input to this gate, we add an
         # additional parameter that is a weight
         super(CombineGate, self).bind_unit_input(unit)
-        self.input_params.append(self.ucreator.new_unit(0., 0., 'c%d' % len(self.input_params))
+        self.input_params.append(self.ucreator.new_unit(0., 0., 'c%d' % len(self.input_params)))
 
     def forward(self):
         # Combine gate combines all inputs with a weighted parameters
         # i.e. f(x, y, z) = ax + by + cz
-        self.output_unit.value = sum((a * x for a, x in zip(self.inputs, self.input_params)))
+        self.output_unit.value = sum((a.value * x.value for a, x in zip(self.inputs, self.input_params)))
 
     def backward(self):
         # Use the chain rule to pass back the gradient to the inputs
         # Multiple the output gradient, by the derivative of the function
         for i in range(len(self.inputs)):
-            self.inputs_params[i].grad += self.output_unit.grad * self.inputs[i].value
+            self.input_params[i].grad += self.output_unit.grad * self.inputs[i].value
+            self.inputs[i].grad += self.output_unit.grad * self.input_params[i].value
 
-class Sigmoid(Gate):
+class SigmoidGate(Gate):
     """docstring for Sigmoid."""
     def __init__(self, *args):
-        super(Sigmoid, self).__init__(*args)
+        super(SigmoidGate, self).__init__(*args)
 
     def forward(self):
         assert(len(self.inputs) == 1)
