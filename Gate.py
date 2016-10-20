@@ -1,5 +1,6 @@
 from Unit import UnitCreator
 from math import exp
+import logging
 
 class Gate(object):
     """
@@ -74,7 +75,7 @@ class AddGate(Gate):
 
     def backward(self):
         for i in range(len(self.inputs)):
-            self.inputs[i].grad = self.output_unit.grad
+            self.inputs[i].grad += self.output_unit.grad
 
 class CombineGate(Gate):
     """docstring for CombineGate."""
@@ -114,6 +115,22 @@ class SigmoidGate(Gate):
 
     def _sigmoid(self, x):
         return 1. / (1. + exp(-x))
+
+
+class TanHGate(Gate):
+    """docstring for TanHGate."""
+    def __init__(self, *args):
+        super(TanHGate, self).__init__(*args)
+
+    def forward(self):
+        assert(len(self.inputs) == 1)
+        self.output_unit.value = self._tanh(self.inputs[0].value)
+
+    def backward(self):
+        self.inputs[0].grad += self.output_unit.grad * (1 - self.output_unit.value ** 2)
+
+    def _tanh(self, x):
+        return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
 
 if __name__ == '__main__':
     ucreator = UnitCreator()

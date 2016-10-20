@@ -1,3 +1,5 @@
+import traceback
+
 class Unit(object):
     """
     The unit object is the only class in the NN that stores parameters of the

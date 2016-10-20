@@ -1,7 +1,29 @@
 from Unit import Unit, UnitCreator
 from Gate import MultiplyGate, AddGate
 
-class SVM(object):
+class Network(object):
+    """docstring for network."""
+    def __init__(self):
+        super(Network, self).__init__()
+        self.ucreator = UnitCreator()
+
+    def train(self, input_values, label):
+        raise NotImplementedError
+
+    def apply_gradient(self, step_size = 0.1):
+        for unit in self.ucreator:
+            unit.value += unit.grad * step_size
+
+    def forward(self):
+        raise NotImplementedError
+
+    def backward(self):
+        raise NotImplementedError
+
+    def predict(self, input_values):
+        raise NotImplementedError
+
+class SVM(Network):
     """
     This is a simple example of an SVM model being implemented using this neural
     network framework.
@@ -13,8 +35,6 @@ class SVM(object):
     """
     def __init__(self):
         super(SVM, self).__init__()
-        # Keep track of all the units in this model
-        self.ucreator = UnitCreator()
 
         # ax
         self.mgate_ax = MultiplyGate(self.ucreator)
@@ -32,27 +52,11 @@ class SVM(object):
         self.agate.bind_gate_input(self.mgate_ax)
         self.agate.bind_gate_input(self.mgate_by)
 
-    def forward(self):
-        self.mgate_ax.forward()
-        self.mgate_by.forward()
-        self.agate.forward()
+    def train(self, input_values, label):
+        self.predict(input_values)
 
-    def __backward__(self):
-        self.agate.backward()
-        self.mgate_by.backward()
-        self.mgate_ax.backward()
+        self.ucreator.zero_grad()
 
-    def predict(self, x, y):
-        self.mgate_ax.set_input_value('x', x)
-        self.mgate_by.set_input_value('y', y)
-        self.forward()
-        return self.agate.get_value()
-
-    def train(self, x, y, label):
-        self.predict(x, y)
-
-        for u in self.ucreator:
-            u.grad = 0
         pull = 0
         if label == 1 and self.agate.get_value() < 1:
             pull = 1.
@@ -68,12 +72,26 @@ class SVM(object):
 
         self.apply_gradient()
 
-    def apply_gradient(self, step_size = 0.1):
-        for unit in self.ucreator:
-            unit.value += unit.grad * step_size
+    def forward(self):
+        self.mgate_ax.forward()
+        self.mgate_by.forward()
+        self.agate.forward()
+
+    def __backward__(self):
+        self.agate.backward()
+        self.mgate_by.backward()
+        self.mgate_ax.backward()
+
+    def predict(self, input_values):
+        assert(len(input_values) == 2)
+        self.mgate_ax.set_input_value('x', input_values[0])
+        self.mgate_by.set_input_value('y', input_values[1])
+        self.forward()
+        return self.agate.get_value()
+
 
 if __name__ == '__main__':
     svm = SVM()
     svm.ucreator.print_nodes()
-    svm.train(1, 2, 1)
+    svm.train([1, 2], 1)
     svm.ucreator.print_nodes()
