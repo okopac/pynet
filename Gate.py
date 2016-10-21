@@ -82,21 +82,23 @@ class CombineGate(Gate):
     def __init__(self, *args):
         super(CombineGate, self).__init__(*args)
         self.input_params = []
+        self.bias = self.ucreator.new_unit(name='cbias')
 
     def bind_unit_input(self, unit):
         # Everytime something wants to add an input to this gate, we add an
         # additional parameter that is a weight
         super(CombineGate, self).bind_unit_input(unit)
-        self.input_params.append(self.ucreator.new_unit(0., 0., 'c%d' % len(self.input_params)))
+        self.input_params.append(self.ucreator.new_unit(name='c%d' % len(self.input_params)))
 
     def forward(self):
         # Combine gate combines all inputs with a weighted parameters
         # i.e. f(x, y, z) = ax + by + cz
-        self.output_unit.value = sum((a.value * x.value for a, x in zip(self.inputs, self.input_params)))
+        self.output_unit.value = self.bias.value + sum((a.value * x.value for a, x in zip(self.inputs, self.input_params)))
 
     def backward(self):
         # Use the chain rule to pass back the gradient to the inputs
         # Multiple the output gradient, by the derivative of the function
+        self.bias.grad = self.output_unit.grad
         for i in range(len(self.inputs)):
             self.input_params[i].grad += self.output_unit.grad * self.inputs[i].value
             self.inputs[i].grad += self.output_unit.grad * self.input_params[i].value
