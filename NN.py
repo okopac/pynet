@@ -41,8 +41,11 @@ class Layer(object):
 
 class LayerNetwork(Network):
     """docstring for LayerNetwork."""
-    def __init__(self, n_inputs, layers=[3], ActivationGate=SigmoidGate):
+    def __init__(self, n_inputs, layers=[3], ActivationGate=SigmoidGate, step_size = 0.01, regularisation = True):
         super(LayerNetwork, self).__init__()
+
+        self.step_size = step_size
+        self.regularisation = regularisation
 
         # Create the hidden layers
         self.layers = []
@@ -54,7 +57,7 @@ class LayerNetwork(Network):
             self.layers[i].bind_layer_input(self.layers[i-1])
 
         # Create the inputs, and bind them to the first layer
-        self.inputs = [self.ucreator.new_unit(0., 0., 'i%d' % i) for i in range(n_inputs)]
+        self.inputs = [self.ucreator.new_unit(name='i%d' % i) for i in range(n_inputs)]
         for u in self.inputs:
             self.layers[0].bind_unit_input(u)
 
@@ -62,6 +65,9 @@ class LayerNetwork(Network):
         self.last_combiner = CombineGate(self.ucreator)
         for actgate in self.layers[-1].activations:
             self.last_combiner.bind_gate_input(actgate)
+
+        # Set random variables for all the nodes
+        self.ucreator.initialise_values()
 
     def train(self, input_values, label):
         output = self.predict(input_values)
@@ -71,18 +77,22 @@ class LayerNetwork(Network):
         pull = 0
         if label == 1 and output < 1:
             pull = 1.
-        elif output > -1:
+        elif label == -1 and output > -1:
             pull = -1.
+        elif not label in [1, -1] :
+            raise Exception("Label must be 1 or -1 (%f)" % label)
 
         logging.debug("Setting pull to %f" % pull)
+        # Set the output gradient, and back propagate
         self.last_combiner.set_grad(pull)
         self.backward()
 
         # Regularisation, bring the parameters back towards zero
-        for unit in self.ucreator:
-            unit.grad -= unit.value
+        if self.regularisation:
+            for unit in self.ucreator:
+                unit.grad -= unit.value
 
-        self.apply_gradient(step_size=0.01)
+        self.apply_gradient(step_size=self.step_size)
 
     def forward(self):
         for layer in self.layers:
