@@ -1,4 +1,6 @@
 from Unit import UnitCreator
+from math import exp
+import logging
 
 class Gate(object):
     """
@@ -18,7 +20,7 @@ class Gate(object):
         self.output_unit = self.ucreator.new_unit()
 
     def bind_gate_input(self, gate):
-        self.inputs.append(gate.output_unit)
+        self.bind_unit_input(gate.output_unit)
 
     def bind_unit_input(self, unit):
         self.inputs.append(unit)
@@ -55,6 +57,7 @@ class MultiplyGate(Gate):
 
     def backward(self):
         # Use the chain rule to pass back the gradient to the inputs
+        logging.error("This is wrong...")
         for i in range(len(self.inputs)):
             self.inputs[i].grad = self.output_unit.grad
             for j in range(len(self.inputs)):
@@ -72,8 +75,64 @@ class AddGate(Gate):
 
     def backward(self):
         for i in range(len(self.inputs)):
-            self.inputs[i].grad = self.output_unit.grad
+            self.inputs[i].grad += self.output_unit.grad
 
+class CombineGate(Gate):
+    """docstring for CombineGate."""
+    def __init__(self, *args):
+        super(CombineGate, self).__init__(*args)
+        self.input_params = []
+        self.bias = self.ucreator.new_unit(name='cbias')
+
+    def bind_unit_input(self, unit):
+        # Everytime something wants to add an input to this gate, we add an
+        # additional parameter that is a weight
+        super(CombineGate, self).bind_unit_input(unit)
+        self.input_params.append(self.ucreator.new_unit(name='c%d' % len(self.input_params)))
+
+    def forward(self):
+        # Combine gate combines all inputs with a weighted parameters
+        # i.e. f(x, y, z) = ax + by + cz
+        self.output_unit.value = self.bias.value + sum((a.value * x.value for a, x in zip(self.inputs, self.input_params)))
+
+    def backward(self):
+        # Use the chain rule to pass back the gradient to the inputs
+        # Multiple the output gradient, by the derivative of the function
+        self.bias.grad = self.output_unit.grad
+        for i in range(len(self.inputs)):
+            self.input_params[i].grad += self.output_unit.grad * self.inputs[i].value
+            self.inputs[i].grad += self.output_unit.grad * self.input_params[i].value
+
+class SigmoidGate(Gate):
+    """docstring for Sigmoid."""
+    def __init__(self, *args):
+        super(SigmoidGate, self).__init__(*args)
+
+    def forward(self):
+        assert(len(self.inputs) == 1)
+        self.output_unit.value = self._sigmoid(self.inputs[0].value)
+
+    def backward(self):
+        self.inputs[0].grad += self.output_unit.grad * self.output_unit.value * (1 - self.output_unit.value)
+
+    def _sigmoid(self, x):
+        return 1. / (1. + exp(-x))
+
+
+class TanHGate(Gate):
+    """docstring for TanHGate."""
+    def __init__(self, *args):
+        super(TanHGate, self).__init__(*args)
+
+    def forward(self):
+        assert(len(self.inputs) == 1)
+        self.output_unit.value = self._tanh(self.inputs[0].value)
+
+    def backward(self):
+        self.inputs[0].grad += self.output_unit.grad * (1 - self.output_unit.value ** 2)
+
+    def _tanh(self, x):
+        return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
 
 if __name__ == '__main__':
     ucreator = UnitCreator()

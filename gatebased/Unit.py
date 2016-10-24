@@ -1,3 +1,6 @@
+import traceback
+import random
+
 class Unit(object):
     """
     The unit object is the only class in the NN that stores parameters of the
@@ -29,13 +32,21 @@ class UnitCreator(object):
         super(UnitCreator, self).__init__()
         self.units = []
 
-    def new_unit(self, *args):
-        self.units.append(Unit(*args))
+    def new_unit(self, *args, **kwargs):
+        self.units.append(Unit(*args, **kwargs))
         return self.units[-1]
 
     def print_nodes(self):
         for u in self.units:
             print(u)
+
+    def zero_grad(self):
+        for u in self.units:
+            u.grad = 0.0
+
+    def initialise_values(self):
+        for u in self.units:
+            u.value = random.random()
 
     def __iter__(self):
         for u in self.units:
