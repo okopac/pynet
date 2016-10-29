@@ -42,6 +42,7 @@ class Network(object):
 
         # Regularisation, bring the parameters back towards zero
         if self.regularisation:
+            raise NotImplementedError
             for unit in self.ucreator:
                 unit.grad -= unit.value
 
@@ -61,7 +62,7 @@ class Network(object):
 
 class Layer(object):
     """docstring for Layer."""
-    def __init__(self, ucreator, size, ActivationGate = SigmoidGate):
+    def __init__(self, ucreator, size, ActivationGate = TanHGate):
         super(Layer, self).__init__()
         self.ucreator = ucreator
         self.size = size
@@ -97,11 +98,8 @@ class Layer(object):
 
 class LayerNetwork(Network):
     """docstring for LayerNetwork."""
-    def __init__(self, n_inputs, layers=[3], ActivationGate=SigmoidGate):
+    def __init__(self, n_inputs, layers=[3], ActivationGate=TanHGate):
         super(LayerNetwork, self).__init__()
-
-        self.step_size = step_size
-        self.regularisation = regularisation
 
         # Create the hidden layers
         self.layers = []
@@ -118,38 +116,48 @@ class LayerNetwork(Network):
             self.layers[0].bind_unit_input(u)
 
         # Bind outputs to the last layer. Use a combiner to bind them together
-        self.last_combiner = CombineGate(self.ucreator)
+        self.combiner = CombineGate(self.ucreator)
         for actgate in self.layers[-1].activations:
-            self.last_combiner.bind_gate_input(actgate)
+            self.combiner.bind_gate_input(actgate)
 
         # Set random variables for all the nodes
         self.ucreator.initialise_values()
 
+    def set_backprop(self, pull):
+        self.combiner.set_grad(pull)
+
     def forward(self):
         for layer in self.layers:
             layer.forward()
-        self.last_combiner.forward()
+        self.combiner.forward()
 
     def backward(self):
-        self.last_combiner.backward()
+        self.combiner.backward()
+        # print(self.combiner.bias.grad)
+        # for a in self.layers[-1].activations:
+        #     print(a.output_unit)
+
         for layer in reversed(self.layers):
             layer.backward()
 
+        # for a in self.layers[0].activations:
+        #     print(a.output_unit)
+        # raise NotImplementedError
+
     def predict(self, input_values):
         assert(len(input_values) == len(self.inputs))
-        for iv, iu in zip(input_values, self.inputs):
-            iu.value = iv
+        for i, iv in enumerate(input_values):
+            self.inputs[i].value = iv
         self.forward()
-        return self.last_combiner.get_value()
+        return 1 if self.combiner.get_value() >= 0 else -1
 
 
 if __name__ == '__main__':
     import numpy as np
+    import itertools
     logging.basicConfig(level=logging.INFO)
-    lnetwork = LayerNetwork(2, [3, 3, 3])
-    data = np.array([[1, 1], [1, -1], [-1, 1], [-1, -1]])
-    labels = np.array([1, -1, -1, 1])
-    for i in range(100):
-        for d, l in zip(data, labels):
-            print(lnetwork.predict([1, 1]))
-            lnetwork.train(d, l)
+    lnetwork = LayerNetwork(2, [2, 8, 3])
+    # Check the inter layer connections
+    for l in range(1, len(lnetwork.layers)):
+        for i, j in itertools.product(range(len(lnetwork.layers[l-1].activations)), range(len(lnetwork.layers[l].combiners))):
+            assert(lnetwork.layers[l - 1].activations[i].output_unit in lnetwork.layers[l].combiners[j].inputs)
