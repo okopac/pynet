@@ -26,9 +26,9 @@ class Network(object):
         self.ucreator.zero_grad()
 
         pull = 0
-        if label == 1 and output != 1:
+        if label == 1 and self.combiner.get_value() < 1:
             pull = 1.
-        elif label == -1 and output != -1:
+        elif label == -1 and self.combiner.get_value() > -1:
             pull = -1.
         elif not label in [1, -1]:
             raise Exception("Label must be 1 or -1 (%f)" % label)
