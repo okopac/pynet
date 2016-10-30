@@ -17,7 +17,7 @@ class Gate(object):
         super(Gate, self).__init__()
         self.ucreator = ucreator
         self.inputs = []
-        self.output_unit = self.ucreator.new_unit()
+        self.output_unit = self.ucreator.new_unit(name='out')
 
     def bind_gate_input(self, gate):
         self.bind_unit_input(gate.output_unit)
@@ -41,41 +41,6 @@ class Gate(object):
         for u in self.inputs:
             if iname == u.name:
                 u.value = value
-
-class MultiplyGate(Gate):
-    """docstring for MultiplyGate."""
-    def __init__(self, *args):
-        super(MultiplyGate, self).__init__(*args)
-
-    def forward(self):
-        self.output_unit.value = 1.
-        assert(len(self.inputs) >= 2)
-        for unit in self.inputs:
-            self.output_unit.value = self.output_unit.value * unit.value
-
-        return self.output_unit
-
-    def backward(self):
-        # Use the chain rule to pass back the gradient to the inputs
-        logging.error("This is wrong...")
-        for i in range(len(self.inputs)):
-            self.inputs[i].grad = self.output_unit.grad
-            for j in range(len(self.inputs)):
-                if i != j:
-                    self.inputs[i].grad = self.inputs[i].grad * self.inputs[j].value
-
-class AddGate(Gate):
-    """docstring for AddGate."""
-    def __init__(self, *args):
-        super(AddGate, self).__init__(*args)
-
-    def forward(self):
-        assert(len(self.inputs) >= 2)
-        self.output_unit.value = sum((x.value for x in self.inputs))
-
-    def backward(self):
-        for i in range(len(self.inputs)):
-            self.inputs[i].grad += self.output_unit.grad
 
 class CombineGate(Gate):
     """docstring for CombineGate."""

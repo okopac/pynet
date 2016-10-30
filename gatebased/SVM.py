@@ -1,27 +1,6 @@
 from Unit import Unit, UnitCreator
-from Gate import MultiplyGate, AddGate
-
-class Network(object):
-    """docstring for network."""
-    def __init__(self):
-        super(Network, self).__init__()
-        self.ucreator = UnitCreator()
-
-    def train(self, input_values, label):
-        raise NotImplementedError
-
-    def apply_gradient(self, step_size = 0.1):
-        for unit in self.ucreator:
-            unit.value += unit.grad * step_size
-
-    def forward(self):
-        raise NotImplementedError
-
-    def backward(self):
-        raise NotImplementedError
-
-    def predict(self, input_values):
-        raise NotImplementedError
+from Gate import CombineGate
+from NN import Network
 
 class SVM(Network):
     """
@@ -29,69 +8,75 @@ class SVM(Network):
     network framework.
 
     The function we are attempting to fit is f(x, y) = ax + by + c
-
-    To create this function we have:
-      * 3 gates (ax, bx, ax + bx + c)
     """
     def __init__(self):
         super(SVM, self).__init__()
-
-        # ax
-        self.mgate_ax = MultiplyGate(self.ucreator)
-        self.mgate_ax.bind_unit_input(self.ucreator.new_unit(0., 0., 'a'))
-        self.mgate_ax.bind_unit_input(self.ucreator.new_unit(0., 0., 'x'))
-
-        # bx
-        self.mgate_by = MultiplyGate(self.ucreator)
-        self.mgate_by.bind_unit_input(self.ucreator.new_unit(0., 0., 'b'))
-        self.mgate_by.bind_unit_input(self.ucreator.new_unit(0., 0., 'y'))
-
-        # ax + bx + c
-        self.agate = AddGate(self.ucreator)
-        self.agate.bind_unit_input(self.ucreator.new_unit(0., 0., 'c'))
-        self.agate.bind_gate_input(self.mgate_ax)
-        self.agate.bind_gate_input(self.mgate_by)
-
-    def train(self, input_values, label):
-        self.predict(input_values)
-
-        self.ucreator.zero_grad()
-
-        pull = 0
-        if label == 1 and self.agate.get_value() < 1:
-            pull = 1.
-        if label == -1 and self.agate.get_value() > -1:
-            pull = -1.
-
-        self.agate.set_grad(pull)
-        self.__backward__()
-
-        # Regularisation, bring the parameters back towards zero
-        for unit in self.ucreator:
-            unit.grad -= unit.value
-
-        self.apply_gradient()
+        self.x = self.ucreator.new_unit(name='x')
+        self.y = self.ucreator.new_unit(name='y')
+        self.combiner = CombineGate(self.ucreator)
+        self.combiner.bind_unit_input(self.x)
+        self.combiner.bind_unit_input(self.y)
+        self.ucreator.initialise_values()
 
     def forward(self):
-        self.mgate_ax.forward()
-        self.mgate_by.forward()
-        self.agate.forward()
+        self.combiner.forward()
 
-    def __backward__(self):
-        self.agate.backward()
-        self.mgate_by.backward()
-        self.mgate_ax.backward()
+    def backward(self):
+        self.combiner.backward()
+
+    def set_backprop(self, grad):
+        self.combiner.set_grad(grad)
 
     def predict(self, input_values):
-        assert(len(input_values) == 2)
-        self.mgate_ax.set_input_value('x', input_values[0])
-        self.mgate_by.set_input_value('y', input_values[1])
+        self.x.value = input_values[0]
+        self.y.value = input_values[1]
         self.forward()
-        return self.agate.get_value()
+        return 1 if self.combiner.get_value() >= 0 else -1
 
 
 if __name__ == '__main__':
+    import random
+    import matplotlib.pyplot as plt
+
+    def target_function(x, y):
+        val = 3.5 * x - 9.8 * y + 0.2
+        return 1 if val > 0 else - 1
+
+    train_data = [(random.random(), random.random()) for i in range(10)]
+    test_data = [(random.random(), random.random()) for i in range(10)]
+    train_label = [target_function(x, y) for x, y in train_data]
+    test_label = [target_function(x, y) for x, y in test_data]
+
+    test_eval = []
+    train_eval = []
+
     svm = SVM()
+    svm.regularisation = False
+    svm.step_size = 1
+
+    def eval_model(model, data, labels):
+        return sum([model.predict(d) == l for d, l in zip(data, labels)]) * 100.0 / len(labels)
+
+    a, b, c = [], [], []
+
+    for i in range(10000):
+        a.append(svm.combiner.input_params[0].value)
+        b.append(svm.combiner.input_params[1].value)
+        c.append(svm.combiner.bias.value)
+        for x, y in train_data:
+            x, y = random.random(), random.random()
+            pull = svm.train([x, y], target_function(x, y))
+        train_eval.append(eval_model(svm, train_data, train_label))
+        test_eval.append(eval_model(svm, test_data, test_label))
+
     svm.ucreator.print_nodes()
-    svm.train([1, 2], 1)
-    svm.ucreator.print_nodes()
+    #plt.plot(a, label='a')
+    #plt.plot(b, label='b')
+    #plt.plot(c, label='c')
+    #plt.legend()
+    #plt.show()
+
+    plt.plot(train_eval, label='train')
+    plt.plot(test_eval, label='test')
+    plt.legend()
+    plt.show()
